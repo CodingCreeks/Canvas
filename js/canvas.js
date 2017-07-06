@@ -1,263 +1,108 @@
-		var canvas = document.querySelector('canvas');
-		var c = canvas.getContext('2d');
+var canvas = document.getElementById("myCanvas");
+var c = canvas.getContext('2d');
 
-		canvas.width = window.innerWidth;
-		canvas.height = window.innerHeight;
+var timer;
+var mouseX;
+var mouseY;
 
-		window.addEventListener("resize", function() {
-		    canvas.width = window.innerWidth;
-		    canvas.height = window.innerHeight;
-		});
+canvas.height = window.innerHeight;
+canvas.width = window.innerWidth;
 
+var canvasWidth = canvas.width;
+var canvasHeight = canvas.height;
 
-		/*
-		 * ------------------------------------------
-		 * *-----------------------------
-		 *  Design
-		 * *-----------------------------
-		 * ------------------------------------------
-		 */
+var maxRadius = 35;
 
-		function Star() {
-		    this.radius = (Math.random() * 10) + 5;
-		    this.x = this.radius + (canvas.width - this.radius * 2) * Math.random();
-		    this.y = -10;
-		    this.dx = (Math.random() - 0.5) * 20;
-		    this.dy = 30;
-		    this.gravity = .5;
-		    this.friction = .54;
+canvas.onmousemove = function(e) {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+}
 
-		    this.update = function() {
+window.addEventListener('resize', function() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+});
 
-		        // Bounce particles off the floor of the canvas
-		        if (this.y + this.radius + this.dy >= canvas.height - groundHeight) {
-		            this.dy = -this.dy * this.friction;
-		            this.dx *= this.friction;
-		            this.radius -= 3;
+function Circle(xCoordinate, yCoordinate, radius) {
+    var randomNumber = Math.floor((Math.random() * 4));
+    var randomTrueOrFalse = Math.floor(Math.random() * 2);
+    var randomTrueOrFalseTwo = Math.floor(Math.random() * 2);
 
-		            explosions.push(new Explosion(this));
-		        } else {
-		            this.dy += this.gravity;
-		        }
+    this.xCoordinate = xCoordinate;
+    this.yCoordinate = yCoordinate;
+    this.radius = radius;
+    this.color = colorArray[randomNumber];
 
-		        // Bounce particles off left and right sides of canvas
-		        if (this.x + this.radius + this.dx >= canvas.width || this.x - this.radius + this.dx < 0) {
-		            this.dx = -this.dx;
-		            this.dx *= this.friction;
-		            explosions.push(new Explosion(this));
-		        };
+    if (randomTrueOrFalse == 1) {
+        this.xVelocity = -Math.random() * 1;
+    } else {
+        this.xVelocity = Math.random() * 1;
+    }
 
-		        // Move particles by velocity
-		        this.x += this.dx;
-		        this.y += this.dy;
+    if (randomTrueOrFalse == 1) {
+        this.yVelocity = -Math.random() * 1;
+    } else {
+        this.yVelocity = Math.random() * 1;
+    }
 
-		        this.draw();
+    // As distance gets closer to 0, increase radius
 
-		        // Draw particles from explosion
-		        for (var i = 0; i < explosions.length; i++) {
-		            explosions[i].update();
-		        }
+    this.update = function() {
+        this.xCoordinate += this.xVelocity;
+        var xDistance = mouseX - this.xCoordinate;
+        var yDistance = mouseY - this.yCoordinate;
+        var originalRadius = radius;
+        this.yCoordinate += this.yVelocity;
 
-		    }
-		    this.draw = function() {
-		        c.save();
-		        c.beginPath();
-		        c.arc(this.x, this.y, Math.abs(this.radius), 0, Math.PI * 2, false);
+        // Movement Functions
+        if (this.xCoordinate + this.radius > canvasWidth || this.xCoordinate - this.radius < 0) {
+            this.xVelocity = -this.xVelocity;
+        };
+        if (this.yCoordinate + this.radius > canvasHeight || this.yCoordinate - this.radius < 0) {
+            this.yVelocity = -this.yVelocity;
+        };
 
-		        c.shadowColor = ' #FF9933';
-		        c.shadowBlur = 20;
-		        c.shadowOffsetX = 0;
-		        c.shadowOffsetY = 0;
+        // Radius Decrease Functions
+        // When distance between circle center and mouse on horizontal axis is less than 50, increase radius until it is equal to 35
+        if (xDistance < 50 && xDistance > -50 && this.radius < maxRadius && yDistance < 50 && yDistance > -50) {
+            this.radius += 2;
+        } else if ((xDistance >= 50 && originalRadius < this.radius) || (xDistance <= -50 && originalRadius < this.radius) || (yDistance >= 50 && originalRadius < this.radius) || (yDistance <= -50 && originalRadius < this.radius)) {
+            this.radius -= 2;
+        };
 
-		        c.fillStyle = " #FF9933";
-		        c.fill();
-		        c.closePath();
-		        c.restore();
-		    }
-		}
+        this.draw();
 
-		function Particle(x, y, dx, dy) {
-		    this.x = x;
-		    this.y = y;
-		    this.size = {
-		        width: 2,
-		        height: 2
-		    };
-		    this.dx = dx;
-		    this.dy = dy;
-		    this.gravity = .09;
-		    this.friction = 0.88;
-		    this.timeToLive = 3;
-		    this.opacity = 1;
+    }
 
-		    this.update = function() {
-		        if (this.y + this.size.height + this.dy >= canvas.height - groundHeight) {
-		            this.dy = -this.dy * this.friction;
-		            this.dx *= this.friction;
-		        } else {
-		            this.dy += this.gravity;
-		        }
+    this.draw = function() {
+        c.beginPath();
+        c.arc(this.xCoordinate, this.yCoordinate, Math.abs(this.radius), 0, Math.PI * 2)
+        c.fillStyle = this.color;
+        c.fill();
+    }
+}
 
-		        if (this.x + this.size.width + this.dx >= canvas.width || this.x + this.dx < 0) {
-		            this.dx = -this.dx;
-		            this.dx *= this.friction;
-		        };
-		        this.x += this.dx;
-		        this.y += this.dy;
+// var colorArray = ['#272F32', '#9DBDC6', '#FF3D2E', '#DAEAEF'];
+var colorArray = ['#FF9933', '#FFFFFF', '#138808'];
+var myCircle = new Circle(30, 80, 10);
+var circleArray = [];
 
-		        this.draw();
-
-		        this.timeToLive -= 0.01;
-		        this.opacity -= 1 / (this.timeToLive / 0.01);
-		    }
-		    this.draw = function() {
-		        c.save();
-		        c.fillStyle = "rgba(227, 234, 239," + this.opacity + ")";
-		        c.shadowColor = ' #FF9933';
-		        c.shadowBlur = 20;
-		        c.shadowOffsetX = 0;
-		        c.shadowOffsetY = 0;
-		        c.fillRect(this.x, this.y, this.size.width, this.size.height);
-		        c.restore();
-		    }
-
-		    this.isAlive = function() {
-		        return 0 <= this.timeToLive;
-		    }
-		}
-
-		function Explosion(star) {
-		    this.particles = [];
-
-		    this.init = function(parentStar) {
-		        for (var i = 0; i < 8; i++) {
-		            var velocity = {
-		                x: (Math.random() - 0.5) * 5,
-		                y: (Math.random() - 0.5) * 15,
-		            }
-		            this.particles.push(new Particle(parentStar.x, parentStar.y, velocity.x, velocity.y));
-		        }
-		    }
-
-		    this.init(star);
-
-		    this.update = function() {
-		        for (var i = 0; i < this.particles.length; i++) {
-		            this.particles[i].update();
-		            if (this.particles[i].isAlive() == false) {
-		                this.particles.splice(i, 1);
-		            }
-		        }
-		    }
-		}
-
-
-		function createMountainRange(height, yPosition, mountainAmount, color) {
-		    for (var i = 0; i < mountainAmount; i++) {
-		        var width = canvas.width / mountainAmount;
-
-		        // Draw triangle
-		        c.beginPath();
-		        c.moveTo(i * width, yPosition);
-		        c.lineTo(i * width + width + 325, yPosition);
-
-		        // Triangle peak
-		        c.lineTo(i * width + width / 2, yPosition - height / 2);
-		        c.lineTo(i * width - 325, yPosition);
-		        c.fillStyle = color;
-		        c.fill();
-		        c.closePath();
-		    }
-		}
-
-		function MiniStar() {
-		    this.x = Math.random() * canvas.width;
-		    this.y = Math.random() * canvas.height;
-		    this.radius = Math.random() * 3;
-
-		    this.draw = function() {
-		        c.save();
-		        c.beginPath();
-		        c.arc(this.x, this.y, this.radius, 0, Math.PI * 2, false);
-
-		        c.shadowColor = '#E3EAEF';
-		        c.shadowBlur = (Math.random() * 10) + 10;
-		        c.shadowOffsetX = 0;
-		        c.shadowOffsetY = 0;
-
-		        c.fillStyle = "white";
-		        c.fill();
-
-		        c.closePath();
-		        c.restore();
-		    }
-		}
-
-
-		/*
-		 * ------------------------------------------
-		 * *-----------------------------
-		 *  Implementation
-		 * *-----------------------------
-		 * ------------------------------------------
-		 */
-
-		var timer = 0;
-		var stars = [];
-		var explosions = [];
-		var groundHeight = canvas.height * 0.15;
-		var randomSpawnRate = Math.floor((Math.random() * 25) + 60)
-		var backgroundGradient = c.createLinearGradient(0, 0, 0, canvas.height);
-		backgroundGradient.addColorStop(0, "rgba(23, 30, 38, 0.7)");
-		backgroundGradient.addColorStop(1, "rgba(63, 88, 107, 0.7)");
-
-		var miniStars = [];
-		for (var i = 0; i < 150; i++) {
-		    miniStars.push(new MiniStar());
-		}
+for (var i = 0; i < 800; i++) {
+    var randomXCoordinate = Math.random() * canvasWidth;
+    var randomYCoordinate = Math.random() * canvasHeight;
+    var randomRadius = Math.random() * 5;
+    circleArray.push(new Circle(randomXCoordinate, randomYCoordinate, randomRadius))
+}
 
 
 
+function updateAll() {
+    c.clearRect(0, 0, canvasWidth, canvasHeight);
+    myCircle.update();
+    for (var i = 0; i < circleArray.length; i++) {
+        circleArray[i].update();
+    }
+    window.requestAnimationFrame(updateAll);
+}
 
-		function animate() {
-		    window.requestAnimationFrame(animate);
-		    c.fillStyle = backgroundGradient;
-		    c.fillRect(0, 0, canvas.width, canvas.height);
-
-		    for (var i = 0; i < miniStars.length; i++) {
-		        miniStars[i].draw();
-		    }
-		    createMountainRange(canvas.height / .55, canvas.height, 1, "#384551");
-		    createMountainRange(canvas.height / .7, canvas.height, 2, "#2B3843");
-		    createMountainRange(canvas.height / 1.2, canvas.height, 3, "#26333E");
-
-		    c.fillStyle = "#182028";
-		    c.fillRect(0, canvas.height - groundHeight, canvas.width, groundHeight);
-
-
-
-		    for (var i = 0; i < stars.length; i++) {
-		        stars[i].update();
-		        // console.log(stars[0].isAlive());
-
-		        if (stars[i].radius <= 0) {
-		            stars.splice(i, 1);
-		        }
-		    }
-
-		    for (var i = 0; i < explosions.length; i++) {
-		        if (explosions[i].length <= 0) {
-		            explosions.splice(i, 1);
-		        }
-		    }
-
-		    timer++;
-		    // console.log(timer);
-		    if (timer % randomSpawnRate == 0) {
-		        stars.push(new Star());
-		        randomSpawnRate = Math.floor((Math.random() * 10) + 75)
-		    }
-
-		}
-
-		animate();
+updateAll();
